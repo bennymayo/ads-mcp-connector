@@ -17,27 +17,50 @@ curl -fsSL https://raw.githubusercontent.com/bennymayo/ads-mcp-connector/main/in
 > **What is a terminal?** On a Mac, press `Cmd + Space`, type "Terminal", and press Enter. On Windows, search for "Command Prompt". It's just a text-based way to talk to your computer — think of this command as downloading and installing the connector automatically.
 
 **Requirements:**
-- [Claude Code](https://claude.ai/code) installed
 - Python 3.10 or newer ([download here](https://www.python.org/downloads/) — takes 3 min)
+- One of the supported AI tools (see below)
 - A Meta Ads and/or Google Ads account
 
 The installer will:
 - Download this connector to `~/ads-mcp-connector`
 - Install Python dependencies automatically
-- Register itself with Claude Code
+- Auto-detect which AI tools you have and register with all of them
 - Install a security hook that scans for API keys before every git commit
+
+---
+
+## Supported tools
+
+| Tool | Works | Guided setup skill |
+|------|-------|--------------------|
+| [Claude Code](https://claude.ai/code) | ✓ | ✓ `/ads-connect` |
+| [Claude Desktop / Cowork](https://claude.ai/download) | ✓ | ask in natural language |
+| [Cursor](https://cursor.com) | ✓ | ask in agent mode |
+| Claude.ai (web) | ✗ | — |
+
+The installer detects which tools you have installed and registers automatically with all of them. If you install a new tool later, just run `bash install.sh` again.
 
 ---
 
 ## Usage
 
-Open Claude Code, navigate to any project, and type:
-
+**Claude Code** — open any project and type:
 ```
 /ads-connect
 ```
+The skill walks you through connecting your ad accounts step by step.
 
-The skill walks you through connecting your ad accounts step by step. Once connected, ask questions in plain English:
+**Claude Desktop / Cowork** — restart after install, then just ask:
+```
+Connect my Meta Ads account
+```
+
+**Cursor** — restart after install, open agent mode, then ask:
+```
+Connect my ad accounts and show me last month's campaigns
+```
+
+Once connected, ask questions in plain English from any of these tools:
 
 ```
 Show me my campaigns from last month

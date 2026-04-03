@@ -18,6 +18,8 @@ REPO_URL="https://github.com/bennymayo/ads-mcp-connector.git"
 DEFAULT_INSTALL_DIR="$HOME/ads-mcp-connector"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 CLAUDE_SKILLS_DIR="$HOME/.claude/skills/ads-connect"
+CLAUDE_DESKTOP_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+CURSOR_CONFIG="$HOME/.cursor/mcp.json"
 BOLD="\033[1m"
 GREEN="\033[0;32m"
 YELLOW="\033[0;33m"
@@ -148,34 +150,65 @@ else
   success "Credentials file already exists (not overwritten)"
 fi
 
-# ─── Step 7: Register MCP server in Claude settings ──────────────────────────
+# ─── Step 7: Register MCP server (Claude Code, Claude Desktop, Cursor) ────────
 
-info "Registering with Claude Code..."
-mkdir -p "$(dirname "$CLAUDE_SETTINGS")"
+MCP_ENTRY="{\"command\": \"$VENV_PYTHON\", \"args\": [\"$INSTALL_DIR/server.py\"], \"env\": {}}"
+REGISTERED_IN=()
 
-"$VENV_PYTHON" - <<PYEOF
-import json, sys
+register_mcp() {
+  local config_path="$1"
+  local label="$2"
+  local top_key="${3:-mcpServers}"   # Claude Code/Desktop use "mcpServers"; Cursor uses "mcpServers" too
+
+  mkdir -p "$(dirname "$config_path")"
+
+  "$VENV_PYTHON" - <<PYEOF
+import json
 from pathlib import Path
 
-settings_path = Path("$CLAUDE_SETTINGS")
+config_path = Path("$config_path")
 data = {}
-if settings_path.exists():
+if config_path.exists():
     try:
-        data = json.loads(settings_path.read_text())
-    except json.JSONDecodeError:
+        data = json.loads(config_path.read_text())
+    except (json.JSONDecodeError, Exception):
         data = {}
 
-data.setdefault("mcpServers", {})
-data["mcpServers"]["ads-mcp-connector"] = {
+data.setdefault("$top_key", {})
+data["$top_key"]["ads-mcp-connector"] = {
     "command": "$VENV_PYTHON",
     "args": ["$INSTALL_DIR/server.py"],
     "env": {}
 }
-settings_path.write_text(json.dumps(data, indent=2))
-print("ok")
+config_path.write_text(json.dumps(data, indent=2))
 PYEOF
+}
 
-success "Registered in ~/.claude/settings.json"
+# Claude Code
+if [[ -d "$HOME/.claude" ]]; then
+  register_mcp "$CLAUDE_SETTINGS" "Claude Code"
+  success "Registered with Claude Code (~/.claude/settings.json)"
+  REGISTERED_IN+=("Claude Code")
+fi
+
+# Claude Desktop / Cowork (Mac)
+if [[ -d "$HOME/Library/Application Support/Claude" ]]; then
+  register_mcp "$CLAUDE_DESKTOP_CONFIG" "Claude Desktop"
+  success "Registered with Claude Desktop / Cowork"
+  REGISTERED_IN+=("Claude Desktop / Cowork")
+fi
+
+# Cursor
+if [[ -d "$HOME/.cursor" ]]; then
+  register_mcp "$CURSOR_CONFIG" "Cursor"
+  success "Registered with Cursor (~/.cursor/mcp.json)"
+  REGISTERED_IN+=("Cursor")
+fi
+
+if [[ ${#REGISTERED_IN[@]} -eq 0 ]]; then
+  warn "No supported AI tools detected (Claude Code, Claude Desktop, or Cursor)."
+  warn "Install one of them, then run bash install.sh again."
+fi
 
 # ─── Step 8: Install Claude skill ────────────────────────────────────────────
 
@@ -213,10 +246,28 @@ echo ""
 echo -e "${BOLD}  Installation complete${RESET}"
 echo -e "  ─────────────────────────────────────────────"
 echo ""
-echo -e "  Open Claude Code and type:"
+echo -e "  Registered with:"
+for tool in "${REGISTERED_IN[@]}"; do
+  echo -e "  ${GREEN}✓${RESET}  $tool"
+done
 echo ""
-echo -e "  ${CYAN}/ads-connect${RESET}"
+echo -e "  ${BOLD}Next step:${RESET}"
 echo ""
-echo -e "  The skill will walk you through connecting"
-echo -e "  Meta Ads and Google Ads step by step."
+if [[ " ${REGISTERED_IN[*]} " == *"Claude Code"* ]]; then
+  echo -e "  ${CYAN}Claude Code${RESET} — open any project and type:"
+  echo -e "  /ads-connect"
+  echo ""
+fi
+if [[ " ${REGISTERED_IN[*]} " == *"Claude Desktop"* ]]; then
+  echo -e "  ${CYAN}Claude Desktop / Cowork${RESET} — restart the app,"
+  echo -e "  then ask: \"connect my Meta Ads account\""
+  echo ""
+fi
+if [[ " ${REGISTERED_IN[*]} " == *"Cursor"* ]]; then
+  echo -e "  ${CYAN}Cursor${RESET} — restart Cursor, open agent mode,"
+  echo -e "  then ask about your campaigns."
+  echo ""
+fi
+echo -e "  Your credentials are never stored in the app —"
+echo -e "  they live only in $INSTALL_DIR/.env"
 echo ""
