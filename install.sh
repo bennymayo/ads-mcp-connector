@@ -76,7 +76,8 @@ echo -e "  ${BOLD}Where should ads-mcp-connector be installed?${RESET}"
 echo -e "  Default: $DEFAULT_INSTALL_DIR"
 echo -e "  Press Enter to use the default, or type a different path."
 echo ""
-read -r -p "  Install path: " USER_DIR
+# Read from /dev/tty explicitly so this works when piped via curl | bash
+read -r -p "  Install path: " USER_DIR </dev/tty || true
 INSTALL_DIR="${USER_DIR:-$DEFAULT_INSTALL_DIR}"
 INSTALL_DIR="${INSTALL_DIR/#\~/$HOME}"
 echo ""
