@@ -98,6 +98,36 @@ info "Installing to: $INSTALL_DIR"
 # Create parent directory before cloning
 mkdir -p "$(dirname "$INSTALL_DIR")"
 
+# ─── Step 2b: Platform selection ─────────────────────────────────────────────
+
+echo ""
+echo -e "  ${BOLD}Which AI tool are you using?${RESET}"
+echo ""
+echo -e "  ①  Claude Code"
+echo -e "  ②  Claude Desktop / Cowork"
+echo -e "  ③  Cursor"
+echo -e "  ④  All of the above"
+echo ""
+
+PLATFORM_CHOICE=""
+while [[ -z "$PLATFORM_CHOICE" ]]; do
+  read -r -p "  Enter 1, 2, 3, or 4: " PLATFORM_CHOICE </dev/tty 2>/dev/null || PLATFORM_CHOICE="1"
+  case "$PLATFORM_CHOICE" in
+    1|2|3|4) ;;  # valid
+    *)
+      echo -e "  ${YELLOW}Please enter 1, 2, 3, or 4.${RESET}"
+      PLATFORM_CHOICE=""
+      ;;
+  esac
+done
+
+case "$PLATFORM_CHOICE" in
+  1) echo ""; info "Installing for Claude Code" ;;
+  2) echo ""; info "Installing for Claude Desktop / Cowork" ;;
+  3) echo ""; info "Installing for Cursor" ;;
+  4) echo ""; info "Installing for all tools" ;;
+esac
+
 # ─── Step 3: Clone or update repo ────────────────────────────────────────────
 
 if [[ -d "$INSTALL_DIR/.git" ]]; then
@@ -200,40 +230,45 @@ config_path.write_text(json.dumps(data, indent=2))
 PYEOF
 }
 
-# Claude Code
-if [[ -d "$HOME/.claude" ]]; then
+do_register_claude_code() {
   register_mcp "$CLAUDE_SETTINGS" "Claude Code"
   success "Registered with Claude Code (~/.claude/settings.json)"
   REGISTERED_IN+=("Claude Code")
-fi
+}
 
-# Claude Desktop / Cowork (Mac)
-if [[ -d "$HOME/Library/Application Support/Claude" ]]; then
+do_register_desktop() {
   register_mcp "$CLAUDE_DESKTOP_CONFIG" "Claude Desktop"
   success "Registered with Claude Desktop / Cowork"
   REGISTERED_IN+=("Claude Desktop / Cowork")
-fi
+}
 
-# Cursor
-if [[ -d "$HOME/.cursor" ]]; then
+do_register_cursor() {
   register_mcp "$CURSOR_CONFIG" "Cursor"
   success "Registered with Cursor (~/.cursor/mcp.json)"
   REGISTERED_IN+=("Cursor")
-fi
+}
 
-if [[ ${#REGISTERED_IN[@]} -eq 0 ]]; then
-  warn "No supported AI tools detected (Claude Code, Claude Desktop, or Cursor)."
-  warn "Install one of them, then run bash install.sh again."
-fi
+case "$PLATFORM_CHOICE" in
+  1) do_register_claude_code ;;
+  2) do_register_desktop ;;
+  3) do_register_cursor ;;
+  4)
+    do_register_claude_code
+    do_register_desktop
+    do_register_cursor
+    ;;
+esac
 
-# ─── Step 8: Install Claude skill ────────────────────────────────────────────
+# ─── Step 8: Install Claude skill (Claude Code only) ─────────────────────────
 
-if [[ -f "$INSTALL_DIR/SKILL.md" ]]; then
-  mkdir -p "$CLAUDE_SKILLS_DIR"
-  cp "$INSTALL_DIR/SKILL.md" "$CLAUDE_SKILLS_DIR/SKILL.md"
-  success "Installed /ads-connect skill to ~/.claude/skills/"
-else
-  warn "SKILL.md not found — skill not installed"
+if [[ "$PLATFORM_CHOICE" == "1" || "$PLATFORM_CHOICE" == "4" ]]; then
+  if [[ -f "$INSTALL_DIR/SKILL.md" ]]; then
+    mkdir -p "$CLAUDE_SKILLS_DIR"
+    cp "$INSTALL_DIR/SKILL.md" "$CLAUDE_SKILLS_DIR/SKILL.md"
+    success "Installed /ads-connect skill to ~/.claude/skills/"
+  else
+    warn "SKILL.md not found — skill not installed"
+  fi
 fi
 
 # ─── Step 9: Install pre-commit security hook ────────────────────────────────
