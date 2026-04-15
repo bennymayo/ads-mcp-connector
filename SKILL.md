@@ -703,7 +703,7 @@ If ②:
   special permissions or billing setup.
 
   The tool is open source:
-  github.com/bennymayo/ads-mcp-connector
+  github.com/benheis/ads-mcp-connector
 
   Thank you.
 

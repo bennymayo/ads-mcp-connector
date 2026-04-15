@@ -25,7 +25,7 @@ A window with a text prompt will appear. That's all you need — it's just a tex
 Copy this line, paste it into Terminal, and press Enter:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bennymayo/ads-mcp-connector/main/install.py | python3
+curl -fsSL https://raw.githubusercontent.com/benheis/ads-mcp-connector/main/install.py | python3
 ```
 
 The installer will walk you through the rest. It takes about 5 minutes.
@@ -57,7 +57,7 @@ Download and install Python (takes about 3 minutes). When installing, check the 
 In Command Prompt, copy this line, paste it in, and press Enter:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/bennymayo/ads-mcp-connector/main/install.py | python
+curl -fsSL https://raw.githubusercontent.com/benheis/ads-mcp-connector/main/install.py | python
 ```
 
 The installer will walk you through the rest. It takes about 5 minutes.
@@ -206,6 +206,26 @@ Run `bash install.sh` from inside the repo directory to reinstall it.
 ## Related repos
 
 - [Curtis Howland's Facebook ad diagnostic framework](https://linkedin.com/in/curtishowland/) — the companion skill that runs automated ad performance diagnostics using this connector
+
+---
+
+## Advanced: Google's official MCP server
+
+Google maintains their own open-source MCP server for Google Ads:
+[developers.google.com/google-ads/api/docs/developer-toolkit/mcp-server](https://developers.google.com/google-ads/api/docs/developer-toolkit/mcp-server)
+
+It also runs locally and is worth knowing about, but it's designed for developers rather than marketers. A few differences to be aware of:
+
+| | This connector | Google's official server |
+|---|---|---|
+| Setup | Guided wizard via `/ads-connect` | Manual credential files |
+| Google Ads tools | 5 purpose-built (campaigns, keywords, search terms, etc.) | 2 generic tools (raw query language) |
+| Meta Ads | ✓ included | ✗ not included |
+| Maintained by | This repo | Google |
+
+**When you'd choose Google's server:** your team has a developer who wants full GAQL query flexibility and is already comfortable with Google Cloud credentials.
+
+**When you'd choose this connector:** you're a marketer who wants a guided setup and plain-English tools without writing query syntax.
 
 ---
 

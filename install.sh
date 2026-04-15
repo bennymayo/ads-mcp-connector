@@ -5,7 +5,7 @@
 # One command to connect Claude Code to Meta Ads and Google Ads.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/bennymayo/ads-mcp-connector/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/benheis/ads-mcp-connector/main/install.sh | bash
 #
 # Or if you've already cloned the repo:
 #   bash install.sh
@@ -14,7 +14,7 @@
 # ============================================================================
 set -euo pipefail
 
-REPO_URL="https://github.com/bennymayo/ads-mcp-connector.git"
+REPO_URL="https://github.com/benheis/ads-mcp-connector.git"
 DEFAULT_INSTALL_DIR="$HOME/ads-mcp-connector"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 CLAUDE_SKILLS_DIR="$HOME/.claude/skills/ads-connect"
@@ -147,9 +147,9 @@ else
     warn "git not found — downloading zip instead..."
     TMP_ZIP=$(mktemp /tmp/ads-mcp-XXXXXX.zip)
     if command -v curl &>/dev/null; then
-      curl -fsSL "https://github.com/bennymayo/ads-mcp-connector/archive/refs/heads/main.zip" -o "$TMP_ZIP"
+      curl -fsSL "https://github.com/benheis/ads-mcp-connector/archive/refs/heads/main.zip" -o "$TMP_ZIP"
     elif command -v wget &>/dev/null; then
-      wget -q "https://github.com/bennymayo/ads-mcp-connector/archive/refs/heads/main.zip" -O "$TMP_ZIP"
+      wget -q "https://github.com/benheis/ads-mcp-connector/archive/refs/heads/main.zip" -O "$TMP_ZIP"
     else
       error "Neither git, curl, nor wget found. Cannot download."
       echo "  Install git (https://git-scm.com) and try again."
@@ -390,7 +390,7 @@ echo -e "  (\"Gitignored\" = GitHub will never include"
 echo -e "  this file, even if you share your code.)"
 echo ""
 echo -e "  Questions or issues:"
-echo -e "  github.com/bennymayo/ads-mcp-connector"
+echo -e "  github.com/benheis/ads-mcp-connector"
 echo ""
 echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""

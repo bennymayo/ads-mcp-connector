@@ -5,10 +5,10 @@ install.py — ads-mcp-connector cross-platform installer
 Works on Mac, Linux, and Windows. Pure Python stdlib — no dependencies needed.
 
 Mac / Linux:
-  curl -fsSL https://raw.githubusercontent.com/bennymayo/ads-mcp-connector/main/install.py | python3
+  curl -fsSL https://raw.githubusercontent.com/benheis/ads-mcp-connector/main/install.py | python3
 
 Windows (Command Prompt or PowerShell):
-  curl -fsSL https://raw.githubusercontent.com/bennymayo/ads-mcp-connector/main/install.py | python
+  curl -fsSL https://raw.githubusercontent.com/benheis/ads-mcp-connector/main/install.py | python
 """
 
 from __future__ import annotations
@@ -128,8 +128,8 @@ info(f"Installing for {_labels[PLATFORM_CHOICE]}")
 
 # ─── Step 3: Clone or update repo ────────────────────────────────────────────
 
-REPO_URL = "https://github.com/bennymayo/ads-mcp-connector.git"
-ZIP_URL  = "https://github.com/bennymayo/ads-mcp-connector/archive/refs/heads/main.zip"
+REPO_URL = "https://github.com/benheis/ads-mcp-connector.git"
+ZIP_URL  = "https://github.com/benheis/ads-mcp-connector/archive/refs/heads/main.zip"
 
 INSTALL_DIR.parent.mkdir(parents=True, exist_ok=True)
 
@@ -395,7 +395,7 @@ print("  (\"Gitignored\" = GitHub will never include")
 print("  this file, even if you share your code.)")
 print()
 print("  Questions or issues:")
-print("  github.com/bennymayo/ads-mcp-connector")
+print("  github.com/benheis/ads-mcp-connector")
 print()
 print(_DIV)
 print()
