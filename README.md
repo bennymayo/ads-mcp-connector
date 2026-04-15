@@ -8,24 +8,67 @@ Built for marketing teams by [@benheiser](https://linkedin.com/in/benheiser).
 
 ## Installation
 
-Paste this into your Terminal and press Enter:
+Pick your computer type below. The installer asks you a few questions and handles everything else automatically.
+
+---
+
+### On a Mac
+
+**Step 1 — Open Terminal**
+
+Press `Cmd + Space`, type **Terminal**, and press Enter.
+
+A window with a text prompt will appear. That's all you need — it's just a text-based way to give your computer instructions.
+
+**Step 2 — Run the installer**
+
+Copy this line, paste it into Terminal, and press Enter:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bennymayo/ads-mcp-connector/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/bennymayo/ads-mcp-connector/main/install.py | python3
 ```
 
-> **What is a terminal?** On a Mac, press `Cmd + Space`, type "Terminal", and press Enter. On Windows, search for "Command Prompt". It's just a text-based way to talk to your computer — think of this command as downloading and installing the connector automatically.
+The installer will walk you through the rest. It takes about 5 minutes.
 
-**Requirements:**
-- Python 3.10 or newer ([download here](https://www.python.org/downloads/) — takes 3 min)
-- One of the supported AI tools (see below)
-- A Meta Ads and/or Google Ads account
+---
 
-The installer will:
-- Download this connector to `~/ads-mcp-connector`
-- Install Python dependencies automatically
-- Auto-detect which AI tools you have and register with all of them
-- Install a security hook that scans for API keys before every git commit
+### On Windows
+
+**Step 1 — Make sure Python is installed**
+
+Python is a free program this tool runs on. To check if you already have it:
+
+1. Press the **Windows key**, type **cmd**, and press Enter to open Command Prompt
+2. Type this and press Enter:
+   ```
+   python --version
+   ```
+3. If you see something like `Python 3.11.0`, you're good — skip to Step 2
+4. If you get an error or see a version lower than 3.10, you need to install Python first
+
+**Don't have Python?** Run this in PowerShell to open the download page automatically:
+```powershell
+python --version 2>$null; if ($LASTEXITCODE -ne 0) { Start-Process "https://www.python.org/downloads/" }
+```
+Download and install Python (takes about 3 minutes). When installing, check the box that says **"Add Python to PATH"** — this is important. Then come back here.
+
+**Step 2 — Run the installer**
+
+In Command Prompt, copy this line, paste it in, and press Enter:
+
+```
+curl -fsSL https://raw.githubusercontent.com/bennymayo/ads-mcp-connector/main/install.py | python
+```
+
+The installer will walk you through the rest. It takes about 5 minutes.
+
+---
+
+**What the installer does:**
+- Downloads this connector to your computer (into a folder called `ads-mcp-connector`)
+- Sets up a private Python workspace just for this tool
+- Connects it to whichever AI tool you choose (Claude Code, Claude Desktop, or Cursor)
+- Creates a secure credentials file that never leaves your machine
 
 ---
 
