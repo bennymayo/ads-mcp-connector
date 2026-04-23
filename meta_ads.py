@@ -55,6 +55,12 @@ def _account_id() -> str:
     return raw
 
 
+_VALID_DATE_PRESETS = {
+    "today", "yesterday", "last_7d", "last_14d", "last_30d", "last_90d",
+    "last_6_months", "last_12_months", "this_month", "last_month",
+}
+
+
 def _date_range_params(date_range: str) -> dict:
     """Convert a date range to Meta API time_range params.
 
@@ -62,6 +68,9 @@ def _date_range_params(date_range: str) -> dict:
     - Preset strings: today, yesterday, last_7d, last_14d, last_30d, last_90d,
       last_6_months, last_12_months, this_month, last_month
     - Custom JSON: '{"since": "2025-01-01", "until": "2025-03-31"}'
+
+    Returns a dict with 'since' and 'until' on success, or an 'error' key on failure.
+    Callers must check for 'error' before using the result.
 
     Note: Meta reports dates in the ad account's timezone, which may differ from
     the server's local time. A 'until: today' request can show future-looking
@@ -74,8 +83,15 @@ def _date_range_params(date_range: str) -> dict:
             parsed = json.loads(stripped)
             if "since" in parsed and "until" in parsed:
                 return {"since": parsed["since"], "until": parsed["until"]}
-        except (json.JSONDecodeError, KeyError):
-            pass
+            return {
+                "error": "INVALID_DATE_RANGE",
+                "message": f"Custom JSON date_range must include both 'since' and 'until'. Got: {date_range}",
+            }
+        except json.JSONDecodeError:
+            return {
+                "error": "INVALID_DATE_RANGE",
+                "message": f"date_range looks like JSON but could not be parsed: {date_range}",
+            }
 
     today = datetime.today()
     ranges = {
@@ -93,7 +109,16 @@ def _date_range_params(date_range: str) -> dict:
             today.replace(day=1) - timedelta(1),
         ),
     }
-    since, until = ranges.get(date_range, ranges["last_30d"])
+    if date_range not in ranges:
+        return {
+            "error": "INVALID_DATE_RANGE",
+            "message": (
+                f"Unknown date_range preset: '{date_range}'. "
+                f"Valid presets: {sorted(_VALID_DATE_PRESETS)}. "
+                "For a custom window pass JSON: '{\"since\":\"YYYY-MM-DD\",\"until\":\"YYYY-MM-DD\"}'"
+            ),
+        }
+    since, until = ranges[date_range]
     return {
         "since": since.strftime("%Y-%m-%d"),
         "until": until.strftime("%Y-%m-%d"),
@@ -164,6 +189,8 @@ def get_account_overview(date_range: str = "last_30d") -> dict:
         return err
 
     time_range = _date_range_params(date_range)
+    if "error" in time_range:
+        return time_range
     fields = "spend,reach,impressions,clicks,ctr,cpc,cpm,actions"
     data = _get(
         f"{_account_id()}/insights",
@@ -190,6 +217,8 @@ def get_campaigns(date_range: str = "last_30d", status_filter: str = "ACTIVE") -
         return err
 
     time_range = _date_range_params(date_range)
+    if "error" in time_range:
+        return time_range
 
     # Get campaign list
     filtering = []
@@ -262,6 +291,8 @@ def get_ad_sets(campaign_id: str = None, date_range: str = "last_30d") -> dict:
         return err
 
     time_range = _date_range_params(date_range)
+    if "error" in time_range:
+        return time_range
     filtering = []
     if campaign_id:
         filtering = [{"field": "campaign_id", "operator": "EQUAL", "value": campaign_id}]
@@ -337,6 +368,8 @@ def get_ads(
         return err
 
     time_range = _date_range_params(date_range)
+    if "error" in time_range:
+        return time_range
     filtering = []
     if ad_set_id:
         filtering.append({"field": "adset_id", "operator": "EQUAL", "value": ad_set_id})
@@ -391,7 +424,13 @@ def get_ads(
         results.append(row)
 
     results.sort(key=lambda x: float(x.get("spend", 0) or 0), reverse=True)
-    return {"ads": results, "date_range": date_range, "count": len(results)}
+    return {
+        "ads": results,
+        "date_range": date_range,
+        "since": time_range["since"],
+        "until": time_range["until"],
+        "count": len(results),
+    }
 
 
 def get_insights(
@@ -419,6 +458,8 @@ def get_insights(
         return {"error": "INVALID_LEVEL", "valid_levels": list(valid_levels)}
 
     time_range = _date_range_params(date_range)
+    if "error" in time_range:
+        return time_range
     # Include ad_id and ad_name when querying at ad level so rows aren't anonymous
     id_fields = "ad_id,ad_name," if object_level == "ad" else ""
     params = {
