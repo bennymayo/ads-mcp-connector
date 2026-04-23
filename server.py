@@ -39,6 +39,7 @@ except ImportError:
 
 import meta_ads
 import google_ads
+import google_sheets
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -437,6 +438,32 @@ async def list_tools() -> list[Tool]:
             description="List all images in the Meta ad account image library with their hashes, URLs, and dimensions.",
             inputSchema={"type": "object", "properties": {}, "required": []},
         ),
+        Tool(
+            name="meta_upload_from_url",
+            description="Download an asset from a URL (Google Drive shared link or any direct HTTPS URL) and upload it to the Meta ad account. Auto-detects image vs video from Content-Type. Returns image_hash or video_id.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "Google Drive sharing link (drive.google.com/file/d/...) or direct HTTPS URL to an image or video file"},
+                    "title": {"type": "string", "description": "Optional title for video uploads"},
+                },
+                "required": ["url"],
+            },
+        ),
+        Tool(
+            name="meta_bulk_create_from_sheet",
+            description="Read a Meta ad trafficking sheet from Google Sheets and create ads row by row. Each READY row becomes one ad (upload asset → create creative → create ad). All ads are created PAUSED. Writes LAUNCHED or ERROR back to the sheet. Always run with dry_run=true first to preview what will be created.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "sheet_id": {"type": "string", "description": "Google Sheet ID (from the URL: docs.google.com/spreadsheets/d/SHEET_ID/edit)"},
+                    "tab_name": {"type": "string", "default": "Trafficking", "description": "Tab name containing the trafficking rows (default: Trafficking)"},
+                    "page_id": {"type": "string", "description": "Facebook Page ID to use for all creatives. Overrides the Page ID column in the sheet if provided."},
+                    "dry_run": {"type": "boolean", "default": True, "description": "If true (default), shows a preview of what would be created without touching Meta. Set to false to execute."},
+                },
+                "required": ["sheet_id"],
+            },
+        ),
         # ── Google Writes ──
         Tool(
             name="google_list_negative_keywords",
@@ -723,6 +750,20 @@ def _dispatch(name: str, args: dict) -> dict:
 
     if name == "meta_get_ad_images":
         return meta_ads.get_ad_images()
+
+    if name == "meta_upload_from_url":
+        return meta_ads.upload_from_url(
+            url=args["url"],
+            title=args.get("title"),
+        )
+
+    if name == "meta_bulk_create_from_sheet":
+        return meta_ads.bulk_create_from_sheet(
+            sheet_id=args["sheet_id"],
+            tab_name=args.get("tab_name", "Trafficking"),
+            page_id=args.get("page_id"),
+            dry_run=args.get("dry_run", True),
+        )
 
     # ── Google Writes ──
     if name == "google_list_negative_keywords":

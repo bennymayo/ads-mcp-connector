@@ -1008,6 +1008,247 @@ def get_ad_images() -> dict:
     return {"images": images, "count": len(images)}
 
 
+def upload_from_url(url: str, title: str = None) -> dict:
+    """Download an asset from a URL and upload it to the Meta ad account.
+
+    Supports:
+    - Google Drive shared links (drive.google.com/file/d/FILE_ID/... or /uc?id=FILE_ID)
+    - Any direct HTTPS URL to an image or video file
+
+    Asset type (image vs video) is detected from the Content-Type header.
+    Returns the same shape as upload_image (image_hash) or upload_video (video_id).
+    """
+    import tempfile
+    import mimetypes
+    import os as _os
+    import re as _re
+
+    err = _check_config()
+    if err:
+        return err
+
+    # Resolve Google Drive shared link → direct download URL
+    drive_file_id = None
+    if "drive.google.com" in url:
+        # Formats: /file/d/FILE_ID/view  or  /uc?id=FILE_ID  or  /open?id=FILE_ID
+        m = _re.search(r"/file/d/([a-zA-Z0-9_-]+)", url)
+        if m:
+            drive_file_id = m.group(1)
+        else:
+            m = _re.search(r"[?&]id=([a-zA-Z0-9_-]+)", url)
+            if m:
+                drive_file_id = m.group(1)
+        if not drive_file_id:
+            return {"error": "INVALID_DRIVE_URL",
+                    "message": "Could not parse a file ID from the Google Drive URL. "
+                               "Use a sharing link in the format: drive.google.com/file/d/FILE_ID/view"}
+        download_url = f"https://drive.google.com/uc?export=download&id={drive_file_id}"
+    else:
+        download_url = url
+
+    # Download to a temp file
+    try:
+        session = requests.Session()
+        resp = session.get(download_url, stream=True, timeout=60)
+
+        # Google Drive virus-scan interstitial for large files
+        if drive_file_id and "text/html" in resp.headers.get("Content-Type", ""):
+            confirm_token = None
+            for k, v in resp.cookies.items():
+                if k.startswith("download_warning"):
+                    confirm_token = v
+                    break
+            if confirm_token:
+                resp = session.get(
+                    f"https://drive.google.com/uc?export=download&id={drive_file_id}&confirm={confirm_token}",
+                    stream=True, timeout=120,
+                )
+            else:
+                return {"error": "DRIVE_INTERSTITIAL",
+                        "message": "Google Drive returned a virus-scan page and no confirmation token. "
+                                   "Try making the file publicly accessible or use a direct download link."}
+
+        if resp.status_code != 200:
+            return {"error": "DOWNLOAD_FAILED",
+                    "message": f"HTTP {resp.status_code} downloading asset from URL."}
+
+        content_type = resp.headers.get("Content-Type", "")
+        # Determine extension from Content-Type
+        ext = mimetypes.guess_extension(content_type.split(";")[0].strip()) or ""
+        # Normalize some common mismatches
+        ext = {".jpe": ".jpg", ".jpeg": ".jpg"}.get(ext, ext)
+        if not ext:
+            # Fall back to guessing from URL
+            url_path = url.split("?")[0].rstrip("/")
+            ext = _os.path.splitext(url_path)[-1].lower() or ".bin"
+
+        is_video = content_type.startswith("video/") or ext in (".mp4", ".mov", ".avi", ".m4v")
+
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp_path = tmp.name
+            for chunk in resp.iter_content(chunk_size=8192):
+                tmp.write(chunk)
+
+    except requests.RequestException as e:
+        return {"error": "DOWNLOAD_FAILED", "message": str(e)}
+
+    # Upload to Meta, then clean up
+    try:
+        if is_video:
+            result = upload_video(tmp_path, title=title or _os.path.basename(url.split("?")[0]))
+        else:
+            result = upload_image(tmp_path)
+    finally:
+        try:
+            _os.unlink(tmp_path)
+        except OSError:
+            pass
+
+    result["source_url"] = url
+    return result
+
+
+def bulk_create_from_sheet(
+    sheet_id: str,
+    tab_name: str = "Trafficking",
+    page_id: str = None,
+    dry_run: bool = True,
+) -> dict:
+    """Read a Meta ad trafficking sheet from Google Sheets and create ads row by row.
+
+    Each READY row in the sheet must have: Campaign ID, Ad Set ID, Ad Name,
+    Headline, Body Copy, Asset URL, Destination URL, Page ID (or pass page_id param), CTA.
+
+    dry_run=True (default): returns a preview of what would be created without touching Meta.
+    dry_run=False: executes uploads and ad creation, writes LAUNCHED/ERROR back to each row.
+
+    Sheet setup:
+    1. Create a Google Sheet with the required columns (see google_sheets.REQUIRED_COLUMNS).
+    2. Set Status = "READY" on rows you want to launch.
+    3. Share the sheet with your service account email (from GOOGLE_SHEETS_CREDENTIALS_PATH).
+    """
+    import google_sheets as gs
+
+    cfg_err = gs.check_config()
+    if cfg_err:
+        return cfg_err
+
+    sheet_data = gs.read_trafficking_sheet(sheet_id, tab_name)
+    if "error" in sheet_data:
+        return sheet_data
+
+    if sheet_data["missing_columns"]:
+        return {
+            "error": "SHEET_MISSING_COLUMNS",
+            "missing": sheet_data["missing_columns"],
+            "message": f"Required columns not found in sheet header: {sheet_data['missing_columns']}. "
+                       "Check spelling — column names are case-insensitive.",
+        }
+
+    ready_rows = [r for r in sheet_data["rows"] if r.get("Status", "").upper() == gs.STATUS_READY]
+    if not ready_rows:
+        return {
+            "message": f"No READY rows found in '{tab_name}'. Set Status = 'READY' on rows to launch.",
+            "total_rows": sheet_data["total"],
+        }
+
+    # Build preview regardless of dry_run — always show the plan before executing
+    preview = []
+    for row in ready_rows:
+        asset_url = row.get("Asset URL", "")
+        asset_type = row.get("Asset Type", "").lower()
+        if not asset_type:
+            asset_type = "video" if any(asset_url.lower().endswith(ext) for ext in (".mp4", ".mov", ".avi", ".m4v")) else "image"
+        effective_page_id = page_id or row.get("Page ID", "")
+        preview.append({
+            "row": row["row_index"],
+            "ad_name": row.get("Ad Name", ""),
+            "ad_set_id": row.get("Ad Set ID", ""),
+            "campaign_id": row.get("Campaign ID", ""),
+            "headline": row.get("Headline", ""),
+            "body_copy": (row.get("Body Copy", "")[:80] + "…") if len(row.get("Body Copy", "")) > 80 else row.get("Body Copy", ""),
+            "cta": row.get("CTA", "LEARN_MORE"),
+            "asset_url": asset_url,
+            "asset_type": asset_type,
+            "destination_url": row.get("Destination URL", ""),
+            "page_id": effective_page_id,
+            "status": "READY",
+        })
+
+    if dry_run:
+        return {
+            "dry_run": True,
+            "message": f"Found {len(ready_rows)} READY row(s). Review below, then call again with dry_run=false to launch. All ads will be created PAUSED.",
+            "rows_to_create": preview,
+            "sheet_id": sheet_id,
+            "tab_name": tab_name,
+        }
+
+    # Live run — execute row by row
+    results = []
+    for row, item in zip(ready_rows, preview):
+        row_result = {"row": row["row_index"], "ad_name": item["ad_name"]}
+        try:
+            # Step 1: upload asset
+            upload_result = upload_from_url(item["asset_url"])
+            if "error" in upload_result:
+                raise RuntimeError(f"Asset upload failed: {upload_result['error']} — {upload_result.get('message', '')}")
+
+            image_hash = upload_result.get("image_hash")
+            video_id = upload_result.get("video_id")
+
+            # Step 2: create creative
+            creative_result = create_ad_creative(
+                name=f"Creative — {item['ad_name']}",
+                page_id=item["page_id"],
+                link_url=item["destination_url"],
+                message=row.get("Body Copy", ""),
+                headline=item["headline"],
+                description=row.get("Description", ""),
+                call_to_action_type=item["cta"],
+                image_hash=image_hash,
+                video_id=video_id,
+            )
+            if "error" in creative_result:
+                raise RuntimeError(f"Creative creation failed: {creative_result['error']} — {creative_result.get('message', '')}")
+
+            creative_id = creative_result["creative_id"]
+
+            # Step 3: create ad (PAUSED until user enables)
+            ad_result = create_ad(
+                ad_set_id=item["ad_set_id"],
+                name=item["ad_name"],
+                creative_id=creative_id,
+                status="PAUSED",
+            )
+            if "error" in ad_result:
+                raise RuntimeError(f"Ad creation failed: {ad_result['error']} — {ad_result.get('message', '')}")
+
+            ad_id = ad_result.get("ad_id", "")
+
+            # Step 4: write LAUNCHED back to sheet
+            gs.update_row_status(sheet_id, tab_name, row["row_index"], gs.STATUS_LAUNCHED, ad_id=ad_id)
+            row_result.update({"status": "LAUNCHED", "ad_id": ad_id, "creative_id": creative_id})
+
+        except Exception as e:
+            err_msg = str(e)
+            gs.update_row_status(sheet_id, tab_name, row["row_index"], gs.STATUS_ERROR, error=err_msg)
+            row_result.update({"status": "ERROR", "error": err_msg})
+
+        results.append(row_result)
+
+    launched = [r for r in results if r["status"] == "LAUNCHED"]
+    errors   = [r for r in results if r["status"] == "ERROR"]
+
+    return {
+        "dry_run": False,
+        "launched": len(launched),
+        "errors": len(errors),
+        "results": results,
+        "note": "All launched ads are PAUSED. Review in Ads Manager and enable when ready.",
+    }
+
+
 def check_connection() -> dict:
     """Test Meta credentials and return connection status."""
     missing = []

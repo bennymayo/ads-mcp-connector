@@ -11,5 +11,9 @@ requests>=2.31.0
 google-ads>=24.0.0
 google-auth-oauthlib>=1.2.0
 
+# Google Sheets (trafficking sheet integration)
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+
 # Corporate TLS proxy support (Zscaler, Netskope, Cloudflare WARP, etc.)
 truststore>=0.9.1

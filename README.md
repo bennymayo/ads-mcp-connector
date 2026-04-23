@@ -161,6 +161,57 @@ The `/ads-connect` skill writes your credentials directly from Claude chat to th
 | Meta Ads | System User token (recommended) | Never |
 | Meta Ads | Graph API Explorer token (fallback) | 60 days |
 | Google Ads | OAuth2 refresh token | Never (unless revoked) |
+| Google Sheets | Service account key | Never |
+
+---
+
+## Uploading ads from Google Sheets (agency workflow)
+
+If your team tracks campaigns in a Google Sheet, you can launch ads directly from the sheet without touching Ads Manager.
+
+### How it works
+
+1. Your sheet has one row per ad to launch — campaign, ad set, ad name, headline, copy, asset URL, CTA
+2. Set `Status = READY` on rows you want to launch
+3. Ask Claude: *"Launch the READY rows in my trafficking sheet"*
+4. Claude shows you a preview of what it will create (dry run)
+5. You confirm — Claude uploads each asset, builds the creative, creates the ad as PAUSED
+6. The sheet gets updated: `Status = LAUNCHED` with the new Ad ID, or `Status = ERROR` with the reason
+
+### Sheet format
+
+| Column | Required | Notes |
+|--------|----------|-------|
+| Campaign ID | Yes | From `meta_get_campaigns` |
+| Ad Set ID | Yes | From `meta_get_ad_sets` |
+| Ad Name | Yes | Your naming convention, used exactly as-is |
+| Headline | Yes | Ad headline |
+| Body Copy | Yes | Primary ad copy |
+| Asset URL | Yes | Google Drive sharing link or direct HTTPS URL |
+| Destination URL | Yes | Landing page |
+| Page ID | Yes | Your Facebook Page ID |
+| CTA | Yes | LEARN_MORE, SHOP_NOW, SIGN_UP, etc. |
+| Description | No | Optional ad description |
+| Asset Type | No | `image` or `video` — auto-detected if blank |
+| Status | Yes | READY → launches. LAUNCHED / ERROR / SKIP → skipped |
+| Ad ID | No | Written back by Claude after launch |
+| Error | No | Written back by Claude if launch fails |
+
+### Google Sheets setup (one-time, ~10 minutes)
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) → **APIs & Services** → **Enable APIs** → enable **Google Sheets API**
+2. Go to **Credentials** → **Create credentials** → **Service account** → download the JSON key
+3. Add to your `.env`:
+   ```
+   GOOGLE_SHEETS_CREDENTIALS_PATH=/path/to/your-service-account-key.json
+   ```
+4. Share your Google Sheet with the service account email (found inside the JSON key) — grant **Editor** access so Claude can write status back
+
+### Asset URLs
+
+Assets can come from anywhere:
+- **Google Drive**: share the file → copy link → paste the `drive.google.com/file/d/...` URL directly into the sheet
+- **Direct URL**: any `https://` link to a `.jpg`, `.png`, `.mp4`, or `.mov` file
 
 ---
 
