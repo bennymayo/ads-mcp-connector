@@ -119,19 +119,29 @@ What's my ROAS across both platforms?
 
 ---
 
-## What gets connected
+## What it can do
 
-### Meta Ads
-- Campaign performance (spend, impressions, clicks, CTR, CPC)
-- Ad set breakdowns (by age, gender, placement, device)
-- Individual ad performance with creative details
-- Account-level overview
+### Pull your data (ask questions)
+- See campaign, ad set, and ad performance across Meta and Google — spend, CPA, ROAS, CTR, reach, frequency
+- Break down any campaign by age, gender, placement, or device
+- See the exact search terms triggering your Google Ads
+- Pull monthly reach trends for audience saturation analysis
 
-### Google Ads
-- Campaign performance (cost, clicks, conversions, ROAS)
-- Keyword performance with Quality Scores
-- Search term report — see exactly what searches triggered your ads
-- Ad group breakdown
+### Make changes (take action)
+No more switching tabs. You can now do all of this from Claude:
+
+**Meta Ads**
+- Pause or enable campaigns, ad sets, and individual ads
+- Update budgets — daily or lifetime, on campaigns or ad sets
+- Set per-ad-set spend minimums and maximums inside CBO campaigns
+- Build new campaigns end-to-end: create the campaign → ad set → upload your image or video → build the creative → launch the ad
+
+**Google Ads**
+- Pause or enable campaigns and ad groups
+- Add and remove negative keywords (campaign or ad group level)
+- Update keyword bids
+- Update campaign budgets
+- Create new campaigns, ad groups, and responsive search ads
 
 ---
 
@@ -167,23 +177,57 @@ python secrets_check.py
 
 ---
 
-## Connecting to other tools
+## Tools reference
 
-The MCP server exposes these tools to Claude Code. You can reference them directly in any Claude session:
+Everything Claude can do with your ad accounts. The AI picks the right tool automatically — you just ask in plain English.
 
+### Meta Ads — Read
 | Tool | What it does |
 |------|-------------|
-| `check_connection` | Test credentials for both platforms |
-| `meta_get_campaigns` | List campaigns with performance data |
-| `meta_get_ad_sets` | Ad sets with targeting and delivery |
-| `meta_get_ads` | Individual ads with creative and metrics |
-| `meta_get_account_overview` | Top-level account stats |
-| `meta_get_insights` | Breakdown by age, gender, placement, device |
-| `google_get_campaigns` | Campaigns with cost, conversions, ROAS |
-| `google_get_keywords` | Keywords with Quality Score |
-| `google_get_search_terms` | Actual searches triggering your ads |
-| `google_get_account_overview` | Account-level ROAS and impression share |
-| `google_get_ad_groups` | Ad group performance |
+| `meta_get_account_overview` | Total spend, reach, and performance at a glance |
+| `meta_get_campaigns` | All campaigns with spend and performance |
+| `meta_get_ad_sets` | Ad sets with targeting, reach, and delivery |
+| `meta_get_ads` | Every ad with spend, CPA, and creative age |
+| `meta_get_insights` | Break down any campaign by age, gender, placement, or device |
+| `meta_get_monthly_reach` | Month-by-month reach for the last 13 months |
+| `meta_get_ad_images` | Browse your uploaded image library |
+
+### Meta Ads — Make changes
+| Tool | What it does |
+|------|-------------|
+| `meta_update_campaign_status` | Pause or enable a campaign |
+| `meta_update_ad_set_status` | Pause or enable an ad set |
+| `meta_update_ad_status` | Pause or enable an individual ad |
+| `meta_update_budget` | Change daily or lifetime budget; set per-ad-set spend limits in CBO |
+| `meta_create_campaign` | Create a new campaign |
+| `meta_create_ad_set` | Create an ad set with targeting and budget |
+| `meta_upload_image` | Upload a JPG or PNG from your computer |
+| `meta_upload_video` | Upload an MP4 or MOV from your computer |
+| `meta_create_ad_creative` | Build an ad creative from an uploaded image or video |
+| `meta_create_ad` | Create an ad and attach it to a creative |
+
+### Google Ads — Read
+| Tool | What it does |
+|------|-------------|
+| `google_get_account_overview` | Total cost, conversions, ROAS, and impression share |
+| `google_get_campaigns` | All campaigns with cost, clicks, and ROAS |
+| `google_get_ad_groups` | Ad group breakdown |
+| `google_get_keywords` | Keywords with Quality Score, bids, and performance |
+| `google_get_search_terms` | Actual search queries triggering your ads |
+| `google_list_negative_keywords` | See all existing negative keywords and their IDs |
+
+### Google Ads — Make changes
+| Tool | What it does |
+|------|-------------|
+| `google_update_campaign_status` | Pause or enable a campaign |
+| `google_update_ad_group_status` | Pause or enable an ad group |
+| `google_update_keyword_bid` | Change the max CPC for a keyword |
+| `google_update_campaign_budget` | Change a campaign's daily budget |
+| `google_add_negative_keywords` | Add negatives at campaign or ad group level |
+| `google_remove_negative_keywords` | Remove negatives by ID |
+| `google_create_campaign` | Create a new campaign with bidding strategy |
+| `google_create_ad_group` | Create an ad group inside a campaign |
+| `google_create_responsive_search_ad` | Build a responsive search ad with headlines and descriptions |
 
 ---
 
@@ -203,9 +247,9 @@ Run `bash install.sh` from inside the repo directory to reinstall it.
 
 ---
 
-## Related repos
+## Related
 
-- [Curtis Howland's Facebook ad diagnostic framework](https://linkedin.com/in/curtishowland/) — the companion skill that runs automated ad performance diagnostics using this connector
+**[meta-account-diagnostics](https://github.com/benheis/meta-account-diagnostics)** — a companion skill (`/meta-diagnostics`) that runs a full 7-analysis Meta Ads account audit and generates a Streamlit dashboard. Plug it into any AI tool that supports MCP.
 
 ---
 
